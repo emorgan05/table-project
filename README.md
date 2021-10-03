@@ -1,9 +1,10 @@
-# y
+# Table Project
 
 > A Vue.js project
 
 ## Build Setup
 
+To Run:
 ``` bash
 # install dependencies
 npm install

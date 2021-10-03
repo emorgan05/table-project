@@ -2,7 +2,13 @@
   <div id="app">
     <section class="table">
       <div class="table-title">
-        <input type="checkbox" />
+        <input
+          class="select-all-checkbox"
+          type="checkbox"
+          id="selectAll"
+          name="selectAll"
+          v-model="checked"
+          @change="handleSelectAll" />
         <h4 class="selected-text">{{ selectedRowsTitle }}</h4>
         <button class="download-button" @click="downloadSelectedRows">
           <img src="./assets/download.svg" width="16" height="16" />
@@ -10,16 +16,26 @@
         </button>
       </div>
       <table>
-        <!-- selectAll checkbox -- unselected, selected, indeterminate
-            selects all if none or some selected. clear if all are currently selected -->
         <thead>
           <tr>
+            <th></th>
             <th v-for="col in columns" :key="col.props">{{ col.label }}</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in tableData" :key="row.name">
+          <tr v-for="row in tableData" :key="row.name" :class="{ selected: row.checked }">
+            <td>
+              <input
+                type="checkbox"
+                :id="row.name"
+                :checked="row.checked"
+                @change="handleSelectRow(row)" />
+            </td>
             <td v-for="col in columns" :key="col.props">{{ row[col.props] }}</td>
+            <td>
+              <span v-if="row.status === 'available'" class="dot"></span> {{ row.status.charAt(0).toUpperCase() + row.status.slice(1) }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -40,7 +56,6 @@ export default {
         {name: '7za.exe', device: 'Baratheon', path: '\\Device\\HarddiskVolume1\\temp\\7za.exe', status: 'scheduled'}
       ],
       columns: [
-        // checkbox column
         {
           props: 'name',
           label: 'Name'
@@ -52,18 +67,10 @@ export default {
         {
           props: 'path',
           label: 'Path'
-        },
-        {
-          props: 'status',
-          label: 'Status'
-          // add an icon
-          // format string to be capitalized
         }
       ],
-      selectedRows: [
-        {name: 'netsh.exe', device: 'Targaryen', path: '\\Device\\HarddiskVolume2\\Windows\\System32\\netsh.exe', status: 'available'},
-        {name: 'uxtheme.dll', device: 'Lannister', path: '\\Device\\HarddiskVolume1\\Windows\\System32\\uxtheme.dll', status: 'available'}
-      ]
+      checked: false,
+      selectedRows: []
     }
   },
   computed: {
@@ -76,8 +83,48 @@ export default {
     }
   },
   methods: {
-    // selectable rows
-      // change color on select and on hover
+    handleSelectAll () {
+      let selectAll = document.querySelector('input[id="selectAll"]');
+
+      if (this.tableData.length === this.selectedRows.length) {
+        this.selectedRows = [];
+        this.checked = false;
+        this.tableData.forEach(row => {
+          row.checked = false;
+        });
+      } else {
+        this.selectedRows = this.tableData;
+        this.checked = true;
+        this.tableData.forEach(row => {
+          row.checked = true;
+        });
+      }
+
+      selectAll.indeterminate = false;
+    },
+    handleSelectRow (row) {
+      const selectedIndex = this.selectedRows.findIndex(selectedRow => selectedRow.name === row.name);
+      let selectAll = document.querySelector('input[id="selectAll"]');
+
+      if (selectedIndex >= 0) {
+        this.selectedRows.splice(selectedIndex, 1);
+        row.checked = false;
+      } else {
+        this.selectedRows.push(row);
+        row.checked = true;
+      }
+
+      if (this.selectedRows.length === 0) {
+        this.checked = false;
+        selectAll.indeterminate = false;
+      } else if (this.selectedRows.length !== this.tableData.length) {
+        this.checked = false;
+        selectAll.indeterminate = true;
+      } else if (this.selectedRows.length === this.tableData.length) {
+        this.checked = true;
+        selectAll.indeterminate = false;
+      }
+    },
     downloadSelectedRows () {
       const alertText = this.selectedRows.map(row => {
         if (row.status === 'available') {
@@ -101,24 +148,6 @@ export default {
   margin-top: 60px;
 }
 
-h1, h2 {
-  font-weight: normal;
-}
-
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-
-a {
-  color: #42b983;
-}
-
 .table {
   border: 1px solid #D3D3D3;
   box-shadow: 5px 5px 10px #D3D3D3;
@@ -130,38 +159,35 @@ a {
   margin: 10px 0px;
 }
 
+.select-all-checkbox {
+  margin-left: 14px;
+  margin-right: 14px;
+}
+
 .selected-text {
   margin: 0;
-  padding: 0 12px;
+  padding-left: 18px;
+  padding-right: 24px;
 }
 
 .download-button {
-    display: inline-block;
-    border: none;
-    margin: 0;
-    text-decoration: none;
-    background: white;
-    color: black;
-    font-size: 1rem;
-    line-height: 1;
-    cursor: pointer;
-    text-align: center;
-    -webkit-appearance: none;
-    -moz-appearance: none;
+  display: inline-block;
+  border: none;
+  margin: 0;
+  text-decoration: none;
+  background: white;
+  color: black;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  text-align: center;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
-button:hover,
-button:focus {
+.download-button:hover,
+.download-button:focus {
     background: #E0E0E0;
-}
-
-button:focus {
-    outline: 1px solid #E0E0E0;
-    outline-offset: -4px;
-}
-
-button:active {
-    transform: scale(0.99);
 }
 
 table {
@@ -175,7 +201,24 @@ tr {
   border: 1px solid #D3D3D3;
 }
 
+tr:hover,
+tr:focus {
+  background-color:	#F5F5F5;
+}
+
+.selected {
+  background-color: azure;
+}
+
 th, td {
   height: 40px;
+}
+
+.dot {
+  height: 15px;
+  width: 15px;
+  background-color: #50C878;
+  border-radius: 50%;
+  display: inline-block;
 }
 </style>

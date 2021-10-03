@@ -160,8 +160,8 @@ export default {
 }
 
 .select-all-checkbox {
-  margin-left: 14px;
-  margin-right: 14px;
+  margin-left: 18px;
+  margin-right: 18px;
 }
 
 .selected-text {
